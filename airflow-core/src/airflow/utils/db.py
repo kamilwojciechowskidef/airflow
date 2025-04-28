@@ -354,6 +354,15 @@ def create_default_connections(session: Session = NEW_SESSION):
     )
     merge_conn(
         Connection(
+            conn_id="gremlin_default",
+            conn_type="gremlin",
+            host="gremlin",
+            port=8182,
+        ),
+        session,
+    )
+    merge_conn(
+        Connection(
             conn_id="hive_cli_default",
             conn_type="hive_cli",
             port=10000,
@@ -1533,7 +1542,7 @@ class LazySelectSequence(Sequence[T]):
     def __bool__(self) -> bool:
         return check_query_exists(self._select_asc, session=self._session)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, collections.abc.Sequence):
             return NotImplemented
         z = itertools.zip_longest(iter(self), iter(other), fillvalue=object())
@@ -1565,7 +1574,7 @@ class LazySelectSequence(Sequence[T]):
             if (row := self._session.execute(stmt.limit(1)).one_or_none()) is None:
                 raise IndexError(key)
             return self._process_row(row)
-        elif isinstance(key, slice):
+        if isinstance(key, slice):
             # This implements the slicing syntax. We want to optimize negative
             # slicing (e.g. seq[-10:]) by not doing an additional COUNT query
             # if possible. We can do this unless the start and stop have
